@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nagrik Saathi: AMC Civic Complaint Agent
 
-## Getting Started
+Garbathon 2026 (GDG Ahmedabad), Agents track. Snap a photo of a civic problem. A Gemini agent identifies the issue, finds the AMC ward and department, checks for duplicates, files the complaint with a tracking ID, and answers "what's the status?" in English, Hindi or Gujarati.
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # add GOOGLE_GENERATIVE_AI_API_KEY (free at aistudio.google.com/apikey)
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The mock AMC system is `data/amc.json` (the seed). Live data goes to `data/db.json`. Use **Agent control → Reset demo data** before a demo.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Screens
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route | What it does |
+|---|---|
+| `/` | Citizen chat: photo upload/camera, location (photo GPS, device, map pin), live step cards, editable approval card, ticket card, agent pipeline, quick controls |
+| `/complaints` | My complaints, or the whole city, with a status timeline, SLA countdown, Ask agent and Escalate buttons |
+| `/officer` | Mock AMC staff kanban: drag to change status, add notes the agent reads back, city map |
+| `/agent` | Autonomy (Ask first / Auto-file), language, tone, per-tool on/off switches, live action log, reset |
 
-## Learn More
+## Agent tools (`lib/tools.ts`)
 
-To learn more about Next.js, take a look at the following resources:
+`analyze_photo` → `locate_ward` → `route_department` → `check_duplicates` → `confirm_and_file` (ask mode: the browser shows an editable draft and files only on approve) or `file_complaint` (auto mode). Plus `upvote_complaint`, `get_status`, `list_my_complaints` and `escalate_complaint`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 2-minute demo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Tap the **Pothole** sample, then **Report**. Watch the step cards, edit the title on the approval card, then **Approve & file**. You get a ticket ID.
+2. Tap **Waterlogging** (Paldi). The agent finds open complaint AMC-2026-00031 nearby and adds a +1 instead of filing a duplicate.
+3. Tap **Open manhole**. It's marked URGENT with a 24-hour SLA.
+4. Tap **Not civic (chai)**. The agent politely declines.
+5. On `/officer`, drag the new pothole ticket to *In progress* and add a note.
+6. Back on `/`, switch the language to ગુજરાતી and ask "મારી ફરિયાદનું સ્ટેટસ શું છે?". The answer includes the officer's note.
+7. Ask "AMC-2026-00038 is overdue. Please escalate it." It gets escalated to the zonal Deputy Commissioner.
+8. On `/agent`, switch to **Auto-file**, report the **Streetlight** sample, and it files with no approval step. Show the action log.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Sample photos come from Wikimedia Commons. See `public/samples/CREDITS.md`.

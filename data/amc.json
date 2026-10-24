@@ -1,0 +1,139 @@
+{
+  "settings": {
+    "autonomy": "ask",
+    "language": "en",
+    "tone": "simple",
+    "disabledTools": []
+  },
+  "counter": 41,
+  "wards": [
+    { "id": "navrangpura", "name": "Navrangpura", "zone": "West Zone", "lat": 23.0365, "lng": 72.5611, "office": "Navrangpura Ward Office, near Stadium Circle", "zonalOfficer": "Deputy Commissioner, West Zone" },
+    { "id": "naranpura", "name": "Naranpura", "zone": "West Zone", "lat": 23.057, "lng": 72.553, "office": "Naranpura Ward Office, Ankur Road", "zonalOfficer": "Deputy Commissioner, West Zone" },
+    { "id": "paldi", "name": "Paldi", "zone": "West Zone", "lat": 23.012, "lng": 72.562, "office": "Paldi Ward Office, Mahalaxmi Cross Roads", "zonalOfficer": "Deputy Commissioner, West Zone" },
+    { "id": "bodakdev", "name": "Bodakdev", "zone": "North West Zone", "lat": 23.0395, "lng": 72.507, "office": "Bodakdev Ward Office, Judges Bungalow Road", "zonalOfficer": "Deputy Commissioner, North West Zone" },
+    { "id": "thaltej", "name": "Thaltej", "zone": "North West Zone", "lat": 23.05, "lng": 72.5, "office": "Thaltej Ward Office, Thaltej Cross Roads", "zonalOfficer": "Deputy Commissioner, North West Zone" },
+    { "id": "jodhpur", "name": "Jodhpur (Satellite)", "zone": "South West Zone", "lat": 23.027, "lng": 72.517, "office": "Jodhpur Ward Office, Ramdev Nagar", "zonalOfficer": "Deputy Commissioner, South West Zone" },
+    { "id": "khadia", "name": "Khadia", "zone": "Central Zone", "lat": 23.0225, "lng": 72.588, "office": "Khadia Ward Office, Raipur Gate", "zonalOfficer": "Deputy Commissioner, Central Zone" },
+    { "id": "maninagar", "name": "Maninagar", "zone": "South Zone", "lat": 22.9962, "lng": 72.603, "office": "Maninagar Ward Office, Kankaria Road", "zonalOfficer": "Deputy Commissioner, South Zone" },
+    { "id": "vastral", "name": "Vastral", "zone": "East Zone", "lat": 23.003, "lng": 72.66, "office": "Vastral Ward Office, Vastral Road", "zonalOfficer": "Deputy Commissioner, East Zone" },
+    { "id": "chandkheda", "name": "Chandkheda", "zone": "North West Zone", "lat": 23.109, "lng": 72.585, "office": "Chandkheda Ward Office, IOC Road", "zonalOfficer": "Deputy Commissioner, North West Zone" }
+  ],
+  "departments": [
+    { "id": "roads", "name": "Roads & Buildings (Engineering)", "slaDays": 7, "issues": ["pothole", "damaged_road", "broken_footpath"] },
+    { "id": "swm", "name": "Solid Waste Management", "slaDays": 2, "issues": ["garbage", "overflowing_bin", "dead_animal"] },
+    { "id": "light", "name": "Street Light Department", "slaDays": 3, "issues": ["streetlight", "fallen_wire"] },
+    { "id": "drainage", "name": "Storm Water Drainage", "slaDays": 3, "issues": ["waterlogging", "blocked_drain", "open_manhole"] },
+    { "id": "water", "name": "Water Supply", "slaDays": 2, "issues": ["water_leak"] },
+    { "id": "estate", "name": "Estate & Town Development", "slaDays": 10, "issues": ["encroachment", "other"] }
+  ],
+  "complaints": [
+    {
+      "id": "AMC-2026-00031",
+      "issueType": "waterlogging",
+      "title": "Waterlogging near Mahalaxmi Cross Roads",
+      "description": "Knee-deep water collected on the road after rain, two-wheelers stalling.",
+      "severity": "high",
+      "departmentId": "drainage",
+      "wardId": "paldi",
+      "lat": 23.0124,
+      "lng": 72.5626,
+      "reporter": "other",
+      "upvotes": 3,
+      "status": "assigned",
+      "escalated": false,
+      "createdAt": "2026-10-22T09:15:00.000Z",
+      "dueAt": "2026-10-25T09:15:00.000Z",
+      "history": [
+        { "status": "filed", "at": "2026-10-22T09:15:00.000Z", "by": "citizen", "note": "Complaint filed via Nagrik Saathi" },
+        { "status": "assigned", "at": "2026-10-22T13:40:00.000Z", "by": "officer", "note": "Assigned to SWD field team, Paldi" }
+      ]
+    },
+    {
+      "id": "AMC-2026-00035",
+      "issueType": "garbage",
+      "title": "Garbage dump outside Kankaria Gate 3",
+      "description": "Large pile of household garbage not picked up for 3 days.",
+      "severity": "medium",
+      "departmentId": "swm",
+      "wardId": "maninagar",
+      "lat": 23.0065,
+      "lng": 72.6012,
+      "reporter": "other",
+      "upvotes": 1,
+      "status": "in_progress",
+      "escalated": false,
+      "createdAt": "2026-10-23T07:00:00.000Z",
+      "dueAt": "2026-10-25T07:00:00.000Z",
+      "history": [
+        { "status": "filed", "at": "2026-10-23T07:00:00.000Z", "by": "citizen", "note": "Complaint filed via Nagrik Saathi" },
+        { "status": "assigned", "at": "2026-10-23T08:10:00.000Z", "by": "officer", "note": "Assigned to SWM sanitary inspector" },
+        { "status": "in_progress", "at": "2026-10-24T05:30:00.000Z", "by": "officer", "note": "Pickup vehicle dispatched" }
+      ]
+    },
+    {
+      "id": "AMC-2026-00038",
+      "issueType": "streetlight",
+      "title": "Streetlight not working on Ankur Road",
+      "description": "Three consecutive streetlights off, the stretch is dark at night.",
+      "severity": "medium",
+      "departmentId": "light",
+      "wardId": "naranpura",
+      "lat": 23.0582,
+      "lng": 72.5541,
+      "reporter": "me",
+      "upvotes": 0,
+      "status": "filed",
+      "escalated": false,
+      "createdAt": "2026-10-17T18:20:00.000Z",
+      "dueAt": "2026-10-20T18:20:00.000Z",
+      "history": [
+        { "status": "filed", "at": "2026-10-17T18:20:00.000Z", "by": "citizen", "note": "Complaint filed via Nagrik Saathi" }
+      ]
+    },
+    {
+      "id": "AMC-2026-00040",
+      "issueType": "pothole",
+      "title": "Pothole on Thaltej underpass approach",
+      "description": "Deep pothole in the left lane, already caused a bike skid.",
+      "severity": "high",
+      "departmentId": "roads",
+      "wardId": "thaltej",
+      "lat": 23.0497,
+      "lng": 72.5018,
+      "reporter": "other",
+      "upvotes": 5,
+      "status": "resolved",
+      "escalated": false,
+      "createdAt": "2026-10-15T10:00:00.000Z",
+      "dueAt": "2026-10-22T10:00:00.000Z",
+      "history": [
+        { "status": "filed", "at": "2026-10-15T10:00:00.000Z", "by": "citizen", "note": "Complaint filed via Nagrik Saathi" },
+        { "status": "assigned", "at": "2026-10-15T12:00:00.000Z", "by": "officer", "note": "Assigned to road maintenance contractor" },
+        { "status": "in_progress", "at": "2026-10-18T09:00:00.000Z", "by": "officer", "note": "Patchwork started" },
+        { "status": "resolved", "at": "2026-10-19T16:00:00.000Z", "by": "officer", "note": "Pothole filled and road levelled" }
+      ]
+    },
+    {
+      "id": "AMC-2026-00041",
+      "issueType": "water_leak",
+      "title": "Water pipeline leak in Vastral",
+      "description": "Clean water gushing from a broken pipeline joint near the bus stop.",
+      "severity": "high",
+      "departmentId": "water",
+      "wardId": "vastral",
+      "lat": 23.0041,
+      "lng": 72.6588,
+      "reporter": "other",
+      "upvotes": 2,
+      "status": "assigned",
+      "escalated": false,
+      "createdAt": "2026-10-24T06:45:00.000Z",
+      "dueAt": "2026-10-26T06:45:00.000Z",
+      "history": [
+        { "status": "filed", "at": "2026-10-24T06:45:00.000Z", "by": "citizen", "note": "Complaint filed via Nagrik Saathi" },
+        { "status": "assigned", "at": "2026-10-24T08:00:00.000Z", "by": "officer", "note": "Water supply engineer notified" }
+      ]
+    }
+  ],
+  "logs": []
+}
