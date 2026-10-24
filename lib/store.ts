@@ -1,20 +1,27 @@
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 import type { Complaint, Db, LogEntry, Severity, Status } from "./types";
 
 // data/amc.json is the seed; data/db.json is the live mock AMC database.
+// Serverless hosts (Vercel) ship a read-only bundle, so the live copy goes to /tmp there.
 const SEED = path.join(process.cwd(), "data", "amc.json");
-const DB = path.join(process.cwd(), "data", "db.json");
+function dbPath() {
+  if (process.env.NAGRIK_DB_PATH) return process.env.NAGRIK_DB_PATH;
+  if (process.env.VERCEL) return path.join(os.tmpdir(), "nagrik-db.json");
+  return path.join(process.cwd(), "data", "db.json");
+}
 
 // Serialise writes so concurrent tool calls don't clobber each other.
 let queue: Promise<unknown> = Promise.resolve();
 
 export async function readDb(): Promise<Db> {
   try {
-    return JSON.parse(await fs.readFile(DB, "utf8"));
+    return JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ dbPath(), "utf8"));
   } catch {
     const seed = await fs.readFile(SEED, "utf8");
-    await fs.writeFile(DB, seed);
+    // A failed copy must not take the agent down; reads still work from the seed.
+    await fs.writeFile(/*turbopackIgnore: true*/ dbPath(), seed).catch((err) => console.error("Could not create live DB:", err));
     return JSON.parse(seed);
   }
 }
@@ -23,7 +30,7 @@ export function updateDb<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
   const run = queue.then(async () => {
     const db = await readDb();
     const result = await fn(db);
-    await fs.writeFile(DB, JSON.stringify(db, null, 2));
+    await fs.writeFile(/*turbopackIgnore: true*/ dbPath(), JSON.stringify(db, null, 2));
     return result;
   });
   queue = run.catch(() => {});
@@ -31,7 +38,7 @@ export function updateDb<T>(fn: (db: Db) => T | Promise<T>): Promise<T> {
 }
 
 export async function resetDb() {
-  await fs.writeFile(DB, await fs.readFile(SEED, "utf8"));
+  await fs.writeFile(/*turbopackIgnore: true*/ dbPath(), await fs.readFile(SEED, "utf8"));
 }
 
 export async function addLog(entry: Omit<LogEntry, "id" | "at">) {

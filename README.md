@@ -8,6 +8,7 @@ Garbathon 2026 (GDG Ahmedabad), Agents track. Snap a photo of a civic problem. A
 npm install
 cp .env.example .env.local   # add GOOGLE_GENERATIVE_AI_API_KEY (free at aistudio.google.com/apikey)
 npm run dev                  # http://localhost:3000
+npm test                     # 51 Vitest tests: store, geo, SLA, agent tools, API routes
 ```
 
 The mock AMC system is `data/amc.json` (the seed). Live data goes to `data/db.json`. Use **Agent control → Reset demo data** before a demo.
