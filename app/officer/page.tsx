@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Building2, Landmark, Map as MapIcon, MapPin, Megaphone, ThumbsUp, X } from "lucide-react";
 import { Badge, PageHeader, SeverityBadge, StatusBadge } from "@/components/ui";
 import { fmtDate, isOverdue, slaLabel } from "@/lib/format";
@@ -9,7 +10,7 @@ import { ISSUE_LABEL, STATUSES, STATUS_LABEL, type Complaint, type Department, t
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
-const STATUS_COLOR: Record<Status, string> = { filed: "#0369a1", assigned: "#4338ca", in_progress: "#b45309", resolved: "#15803d" };
+const STATUS_COLOR: Record<Status, string> = { filed: "#1d4ed8", assigned: "#0f766e", in_progress: "#b45309", resolved: "#15803d" };
 
 export default function OfficerPage() {
   const [data, setData] = useState<{ complaints: Complaint[]; wards: Ward[]; departments: Department[] } | null>(null);
@@ -147,8 +148,10 @@ export default function OfficerPage() {
         })}
       </div>
 
-      {open && (
+      <AnimatePresence>
+        {open && (
         <Drawer
+          key={open.id}
           c={open}
           ward={data.wards.find((w) => w.id === open.wardId)}
           dept={data.departments.find((d) => d.id === open.departmentId)}
@@ -157,7 +160,8 @@ export default function OfficerPage() {
             await move(open.id, status, note);
           }}
         />
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -188,8 +192,24 @@ function Drawer({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[2000] flex justify-end bg-black/40" onClick={onClose}>
-      <aside className="w-full max-w-md h-full bg-surface overflow-y-auto p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      className="fixed inset-0 z-[2000] flex justify-end bg-black/40"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+    >
+      <motion.aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={c.title}
+        className="w-full max-w-md h-full bg-surface overflow-y-auto p-5 space-y-4 shadow-raised"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%", transition: { duration: 0.18, ease: "easeIn" } }}
+        transition={{ type: "spring", stiffness: 380, damping: 38 }}
+      >
         <div className="flex items-start gap-2">
           <div className="flex-1">
             <div className="font-mono text-xs text-muted">{c.id}</div>
@@ -254,7 +274,7 @@ function Drawer({
             ))}
           </ol>
         </div>
-      </aside>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }

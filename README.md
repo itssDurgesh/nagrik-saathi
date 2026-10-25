@@ -17,12 +17,16 @@ The mock AMC system is `data/amc.json` (the seed). Live data goes to `data/db.js
 
 ## Screens
 
+Citizens see two tabs, **Report** and **My reports**, plus a reply-language switch (English, हिंदी, ગુજરાતી). Staff tools are linked from the footer.
+
 | Route | What it does |
 |---|---|
-| `/` | Citizen chat: photo upload/camera, location (photo GPS, device, map pin), live step cards, editable approval card, ticket card, agent pipeline, quick controls |
-| `/complaints` | My complaints, or the whole city, with a status timeline, SLA countdown, Ask agent and Escalate buttons |
-| `/officer` | Mock AMC staff kanban: drag to change status, add notes the agent reads back, city map |
-| `/agent` | Autonomy (Ask first / Auto-file), language, tone, per-tool on/off switches, live action log, reset |
+| `/` | Report: take or upload a photo (or try an example), one plain-language progress card per agent turn, editable "Check before we file" card, ticket card. Side panel: issue location map, quick tracking, "Before filing" preference |
+| `/complaints` | My reports, or the whole city: open/overdue/fixed counts, 4-step progress, latest officer note, Ask status and Escalate |
+| `/officer` | Staff console: drag to change status, add notes the agent reads back, city map |
+| `/agent` | Agent activity: autonomy, language, tone, per-tool switches, live action log, reset |
+
+**Design.** Figma file: [Nagrik Saathi — Citizen redesign](https://www.figma.com/design/6kju8wHgMiPO3HYtowF4ps) (tokens, components, mobile and desktop screens). Style follows "Accessible & Ethical" for public services: Sabarmati teal `#0F766E` for actions, marigold `#F59E0B` accents with dark text, warm paper `#F6F5F0`. Google Fonts via `next/font`: Plus Jakarta Sans, with Anek Gujarati and Anek Devanagari for Indic replies. Motion uses Framer Motion and respects reduced-motion settings.
 
 ## Agent tools (`lib/tools.ts`)
 

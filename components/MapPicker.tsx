@@ -40,7 +40,7 @@ export default function MapPicker({
       center={[23.03, 72.57]}
       zoom={12}
       scrollWheelZoom={false}
-      style={{ height, width: "100%", borderRadius: 12, cursor: onPick ? "crosshair" : undefined }}
+      style={{ height, width: "100%", borderRadius: 16, cursor: onPick ? "crosshair" : undefined }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -62,7 +62,7 @@ export default function MapPicker({
         <CircleMarker
           center={[selected.lat, selected.lng]}
           radius={11}
-          pathOptions={{ color: "#e8590c", fillColor: "#e8590c", fillOpacity: 0.85, weight: 3 }}
+          pathOptions={{ color: "#12212b", fillColor: "#f59e0b", fillOpacity: 1, weight: 2 }}
         >
           <Tooltip permanent direction="top" offset={[0, -10]}>
             {selected.label ?? "Issue location"}

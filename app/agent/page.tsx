@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Bot, CheckCircle2, Cpu, KeyRound, RotateCcw, ShieldCheck, Zap, XCircle } from "lucide-react";
 import { PageHeader, Segmented } from "@/components/ui";
 import { fmtDate } from "@/lib/format";
 import { TOOL_INFO } from "@/lib/tool-info";
+import { saveSettings } from "@/lib/use-settings";
 import type { Language, LogEntry, Settings } from "@/lib/types";
 
 interface State {
@@ -28,7 +30,7 @@ export default function AgentPage() {
 
   async function patch(p: Partial<Settings>) {
     setS((x) => (x ? { ...x, settings: { ...x.settings, ...p } } : x));
-    await fetch("/api/settings", { method: "PATCH", body: JSON.stringify(p) });
+    await saveSettings(p);
     setToast("Saved. The agent uses this from the next message.");
     setTimeout(() => setToast(null), 2000);
   }
@@ -49,7 +51,7 @@ export default function AgentPage() {
       <PageHeader
         eyebrow="You stay in charge"
         icon={ShieldCheck}
-        title="Agent control"
+        title="Agent activity"
         description="Decide how much the agent may do on its own, which tools it can use, and inspect every action it took."
       >
         <button className="btn btn-danger" onClick={reset}><RotateCcw className="size-4" /> Reset demo data</button>
@@ -104,6 +106,7 @@ export default function AgentPage() {
             <div className="space-y-1">
               <div className="text-xs text-muted font-semibold">Reply language</div>
               <Segmented<Language>
+                label="Reply language"
                 value={settings.language}
                 onChange={(v) => patch({ language: v })}
                 options={[{ value: "en", label: "English" }, { value: "hi", label: "हिंदी" }, { value: "gu", label: "ગુજરાતી" }]}
@@ -112,6 +115,7 @@ export default function AgentPage() {
             <div className="space-y-1">
               <div className="text-xs text-muted font-semibold">Tone</div>
               <Segmented<Settings["tone"]>
+                label="Tone"
                 value={settings.tone}
                 onChange={(v) => patch({ tone: v })}
                 options={[{ value: "simple", label: "Simple" }, { value: "formal", label: "Formal" }]}
@@ -179,7 +183,19 @@ export default function AgentPage() {
         )}
       </div>
 
-      {toast && <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[3000] rounded-xl bg-text text-bg px-4 py-2 text-sm font-semibold shadow-lg">{toast}</div>}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: 16, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 16, x: "-50%", transition: { duration: 0.15 } }}
+            className="fixed bottom-6 left-1/2 z-[3000] rounded-2xl bg-text text-bg px-4 py-2.5 text-sm font-semibold shadow-raised"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

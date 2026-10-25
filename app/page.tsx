@@ -1,24 +1,27 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from "ai";
 import {
-  Bot, Camera, Check, Crosshair, ImagePlus, Loader2, MapPin, RotateCcw, Send, Sparkles, Square, X,
+  Camera, ChevronRight, ClipboardList, Clock, ImagePlus, Landmark, LocateFixed, MapPin, Megaphone, RotateCcw, Send, Square, X,
 } from "lucide-react";
+import { AgentSteps, toolName, type ToolPart } from "@/components/AgentSteps";
 import { ApprovalCard, type Draft } from "@/components/ApprovalCard";
-import { StepCard, summary, type ToolPart } from "@/components/StepCard";
 import { TicketCard, type TicketSummary } from "@/components/TicketCard";
-import { PageHeader, Segmented } from "@/components/ui";
+import { Segmented } from "@/components/ui";
 import { istLabel } from "@/lib/format";
 import { fileToDataUrl, preparePhoto } from "@/lib/image";
 import { SAMPLES } from "@/lib/samples";
-import type { Department, Language, Settings, Ward, Autonomy } from "@/lib/types";
+import { saveSettings, useSettings } from "@/lib/use-settings";
+import type { Autonomy, Department, Ward } from "@/lib/types";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), {
   ssr: false,
-  loading: () => <div className="h-[220px] rounded-xl bg-surface-2 animate-pulse" />,
+  loading: () => <div className="h-[200px] rounded-2xl bg-surface-2 animate-pulse" />,
 });
 
 interface Loc {
@@ -27,19 +30,12 @@ interface Loc {
   source: string;
 }
 
-const QUICK_PROMPTS = [
-  "What's the status of my latest complaint?",
-  "Show all my complaints",
-  "AMC-2026-00038 is overdue. Please escalate it.",
+const QUICK_ASKS = [
+  { text: "What's the status of my latest complaint?", label: "Check my latest complaint", icon: ClipboardList },
+  { text: "Which of my complaints are overdue? Please escalate them.", label: "Escalate an overdue complaint", icon: Megaphone },
 ];
 
-const PIPELINE = [
-  { tool: "analyze_photo", label: "See the issue" },
-  { tool: "locate_ward", label: "Find the ward" },
-  { tool: "route_department", label: "Pick department" },
-  { tool: "check_duplicates", label: "Check duplicates" },
-  { tool: "file", label: "File & get ticket ID" },
-];
+const enter = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { type: "spring" as const, stiffness: 380, damping: 32 } };
 
 function isTool(p: UIMessage["parts"][number]): p is UIMessage["parts"][number] & ToolPart {
   return p.type.startsWith("tool-");
@@ -71,11 +67,45 @@ function Rich({ text }: { text: string }) {
   );
 }
 
+function AgentAvatar() {
+  return (
+    <span className="grid place-items-center size-8 rounded-full bg-primary-soft text-primary shrink-0 mt-0.5" aria-hidden>
+      <Landmark className="size-4" />
+    </span>
+  );
+}
+
+function QuickAsks({ onAsk }: { onAsk: (text: string) => void }) {
+  return (
+    <div className="card p-1.5">
+      {QUICK_ASKS.map(({ text, label, icon: Icon }) => (
+        <button key={label} type="button" onClick={() => onAsk(text)} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-left hover:bg-surface-2 transition-colors">
+          <span className="grid place-items-center size-9 rounded-xl bg-primary-soft text-primary shrink-0"><Icon className="size-[18px]" aria-hidden /></span>
+          <span className="flex-1 font-semibold">{label}</span>
+          <ChevronRight className="size-[18px] text-muted" aria-hidden />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SideCard({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="card p-5 space-y-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-bold text-[17px]">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function ReportPage() {
   const [photo, setPhoto] = useState<{ full: string; thumb: string; label: string } | null>(null);
   const [loc, setLoc] = useState<Loc | null>(null);
   const [input, setInput] = useState("");
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const settings = useSettings();
   const [meta, setMeta] = useState<{ wards: Ward[]; departments: Department[] }>({ wards: [], departments: [] });
   const [notice, setNotice] = useState<string | null>(null);
   // Thumbnail of the photo in the current report; stored with the complaint when it is filed.
@@ -83,6 +113,7 @@ export default function ReportPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const autoSent = useRef(false);
 
   const [transport] = useState(() => new DefaultChatTransport({ api: "/api/agent" }));
@@ -96,7 +127,6 @@ export default function ReportPage() {
   const requestOptions = (thumb = lastThumb) => ({ body: { location: loc, thumb } });
 
   useEffect(() => {
-    fetch("/api/settings").then((r) => r.json()).then((d) => setSettings(d.settings));
     fetch("/api/complaints").then((r) => r.json()).then((d) => setMeta({ wards: d.wards, departments: d.departments }));
   }, []);
 
@@ -117,22 +147,18 @@ export default function ReportPage() {
     if (el && messages.length) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, status]);
 
-  async function patchSettings(patch: Partial<Settings>) {
-    setSettings((s) => (s ? { ...s, ...patch } : s));
-    await fetch("/api/settings", { method: "PATCH", body: JSON.stringify(patch) });
-  }
-
   async function pickFile(file: File) {
     try {
       const prepared = await preparePhoto(await fileToDataUrl(file));
       setPhoto({ ...prepared, label: file.name });
+      inputRef.current?.focus();
       const exifr = (await import("exifr")).default;
       const gps = await exifr.gps(file).catch(() => null);
       if (gps?.latitude) {
-        setLoc({ lat: +gps.latitude.toFixed(5), lng: +gps.longitude.toFixed(5), source: "photo GPS" });
-        setNotice("Location read from the photo's GPS tag.");
+        setLoc({ lat: +gps.latitude.toFixed(5), lng: +gps.longitude.toFixed(5), source: "Photo GPS" });
+        setNotice(null);
       } else if (!loc) {
-        setNotice("No GPS in this photo. Tap “Use my location” or drop a pin on the map.");
+        setNotice("No location in this photo. Use your location or tap the map.");
       }
     } catch {
       setNotice("Couldn't read that image. Try another photo.");
@@ -142,8 +168,9 @@ export default function ReportPage() {
   async function pickSample(s: (typeof SAMPLES)[number]) {
     const prepared = await preparePhoto(s.src);
     setPhoto({ ...prepared, label: s.label });
-    setLoc({ lat: s.lat, lng: s.lng, source: `photo GPS · ${s.place}` });
+    setLoc({ lat: s.lat, lng: s.lng, source: `Photo GPS · ${s.place}` });
     setNotice(null);
+    inputRef.current?.focus();
   }
 
   function useMyLocation() {
@@ -151,10 +178,10 @@ export default function ReportPage() {
     setNotice("Getting your location…");
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        setLoc({ lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), source: "device location" });
+        setLoc({ lat: +p.coords.latitude.toFixed(5), lng: +p.coords.longitude.toFixed(5), source: "Your location" });
         setNotice(null);
       },
-      () => setNotice("Location permission denied. Drop a pin on the map instead."),
+      () => setNotice("Location permission denied. Tap the map instead."),
       { enableHighAccuracy: true, timeout: 8000 },
     );
   }
@@ -203,7 +230,7 @@ export default function ReportPage() {
       }),
     }).catch(() => null);
     if (!res?.ok) {
-      setNotice("Couldn't file the complaint with AMC. Please try Approve again.");
+      setNotice("Couldn't file the complaint with AMC. Please try again.");
       return;
     }
     const { complaint } = await res.json();
@@ -240,171 +267,207 @@ export default function ReportPage() {
     });
   }
 
-  // Tool steps since the last photo, for the pipeline view.
-  const pipeline = useMemo(() => {
-    const lastPhoto = messages.findLastIndex((m) => m.role === "user" && m.parts.some((p) => p.type === "file"));
-    if (lastPhoto < 0) return null;
-    const parts = messages.slice(lastPhoto + 1).flatMap((m) => m.parts.filter(isTool));
-    const byTool = new Map(parts.map((p) => [p.type.replace(/^tool-/, ""), p]));
-    const file = byTool.get("confirm_and_file") ?? byTool.get("file_complaint") ?? byTool.get("upvote_complaint");
-    return PIPELINE.map((s) => ({ ...s, part: s.tool === "file" ? file : byTool.get(s.tool) }));
-  }, [messages]);
+  /** Assistant parts in order, with consecutive tool calls folded into one progress card. */
+  function renderAssistant(m: UIMessage) {
+    const blocks: ReactNode[] = [];
+    let group: ToolPart[] = [];
+    const flush = () => {
+      if (!group.length) return;
+      const parts = group;
+      group = [];
+      blocks.push(<AgentSteps key={`steps-${parts[0].toolCallId}`} parts={parts} />);
+      for (const p of parts) {
+        const tool = toolName(p);
+        if (tool === "confirm_and_file" && p.state === "input-available") {
+          blocks.push(
+            <ApprovalCard
+              key={p.toolCallId}
+              draft={p.input as unknown as Draft}
+              wards={meta.wards}
+              departments={meta.departments}
+              thumb={lastThumb}
+              onApprove={(d) => approve(p, d)}
+              onCancel={() => cancel(p)}
+            />,
+          );
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const out = p.output as any;
+        if (p.state === "output-available" && out?.filed && out.complaint) blocks.push(<TicketCard key={`ticket-${p.toolCallId}`} t={out.complaint as TicketSummary} />);
+      }
+    };
+    m.parts.forEach((p, i) => {
+      if (isTool(p)) return void group.push(p);
+      // Only visible text splits the steps; step-start markers and empty text sit between every tool call.
+      if (p.type === "text" && p.text.trim()) {
+        flush();
+        blocks.push(
+          <div key={i} className="rounded-[18px] rounded-tl-md bg-surface border border-border px-4 py-3 leading-relaxed">
+            <Rich text={p.text} />
+          </div>,
+        );
+      }
+    });
+    flush();
+    return blocks;
+  }
 
   const selected = loc ? { lat: loc.lat, lng: loc.lng, label: "Issue location" } : null;
-  const wardPoints = meta.wards.map((w) => ({ lat: w.lat, lng: w.lng, label: `${w.name} ward office`, color: "#4338ca" }));
+  const wardPoints = meta.wards.map((w) => ({ lat: w.lat, lng: w.lng, label: `${w.name} ward office`, color: "#0f766e" }));
+  const started = messages.length > 0;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        eyebrow="AI agent for AMC Ahmedabad"
-        icon={Sparkles}
-        title="Snap it. We'll file it."
-        description="Send a photo of a civic problem. The agent finds the ward and department, files it with AMC and tracks it until it's fixed."
-      >
-        {["Send a photo", "Review draft", "Get ticket ID"].map((s, i) => (
-          <span key={s} className="hidden sm:inline-flex items-center gap-2 rounded-full border border-border bg-surface py-1.5 pl-1.5 pr-3 text-[13px] font-semibold">
-            <span className="grid place-items-center size-[22px] rounded-full bg-primary text-white text-[11px] font-bold">{i + 1}</span>
-            {s}
-          </span>
-        ))}
-      </PageHeader>
+    <div className="grid gap-5 lg:gap-6 lg:grid-cols-[1fr_360px] items-start">
+      {/* Chat: sized so the composer stays on screen below the header */}
+      <section aria-label="Report an issue" className="card flex flex-col h-[calc(100dvh-10rem)] lg:h-[calc(100dvh-8rem)] min-h-[520px] overflow-hidden">
+        <AnimatePresence initial={false}>
+          {started && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="border-b border-border overflow-hidden"
+            >
+              <div className="flex items-center gap-3 px-4 sm:px-5 py-3">
+                <span className={`size-2 rounded-full shrink-0 ${busy ? "bg-accent pulse" : "bg-ok"}`} aria-hidden />
+                <span className="flex-1 text-sm font-semibold text-muted" aria-live="polite">{busy ? "Working on it…" : "Your report"}</span>
+                <button type="button" className="btn btn-ghost !min-h-10 !py-2 !text-sm whitespace-nowrap" onClick={newReport}>
+                  <RotateCcw className="size-4" aria-hidden /> New report
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
-      {/* Chat: sized so the composer stays on screen below the header and title */}
-      <section className="card flex flex-col h-[calc(100dvh-17rem)] min-h-[480px] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border">
-          <span className="grid place-items-center size-9 rounded-full bg-primary text-white shrink-0"><Bot className="size-[18px]" /></span>
-          <div className="leading-tight min-w-0">
-            <div className="font-semibold text-[15px]">Nagrik Saathi agent</div>
-            <div className="text-xs text-muted flex items-center gap-1.5 truncate">
-              <span className={`size-1.5 rounded-full shrink-0 ${busy ? "bg-warn pulse" : "bg-ok"}`} />
-              {busy ? "Working…" : "Gemini vision + 10 AMC tools · replies in English, हिंदी, ગુજરાતી"}
-            </div>
+        <div ref={scrollRef} className="@container flex-1 overflow-y-auto px-4 sm:px-8 py-6 sm:py-8">
+          {!started && (
+            <motion.div initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.06 } } }} className="space-y-6">
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft text-accent-ink px-3 py-1 text-xs font-semibold">
+                  <Clock className="size-3.5" aria-hidden /> Free · takes about a minute
+                </span>
+                <h1 className="text-[30px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.12] text-balance">Spotted a problem on your street?</h1>
+                <p className="text-muted text-[17px] max-w-xl">
+                  Take a photo. We find the right AMC department, file the complaint and keep you posted in your language.
+                </p>
+              </motion.div>
+
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="grid gap-2.5 sm:flex sm:flex-wrap">
+                <button type="button" className="btn btn-primary !min-h-[52px] sm:hidden" onClick={() => cameraRef.current?.click()}>
+                  <Camera className="size-5" aria-hidden /> Take a photo
+                </button>
+                <button type="button" className="btn btn-secondary !min-h-[52px] sm:hidden" onClick={() => galleryRef.current?.click()}>
+                  <ImagePlus className="size-5" aria-hidden /> Upload from gallery
+                </button>
+                <button type="button" className="btn btn-primary !min-h-[52px] !px-6 hidden sm:inline-flex" onClick={() => galleryRef.current?.click()}>
+                  <Camera className="size-5" aria-hidden /> Upload a photo
+                </button>
+                <Link href="/complaints" className="btn btn-secondary !min-h-[52px] !px-6 hidden sm:inline-flex">
+                  <ClipboardList className="size-5" aria-hidden /> Track a complaint
+                </Link>
+              </motion.div>
+
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="space-y-2.5">
+                <h2 className="label">Or try an example</h2>
+                <div className="grid grid-cols-3 @3xl:grid-cols-6 gap-2.5 sm:gap-3">
+                  {SAMPLES.map((s) => (
+                    <motion.button
+                      key={s.id}
+                      type="button"
+                      whileHover={{ y: -3 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="rounded-2xl overflow-hidden border border-border bg-surface text-left hover:border-primary transition-colors"
+                      onClick={() => pickSample(s)}
+                      aria-label={`Use the ${s.label} example photo`}
+                    >
+                      <img src={s.src} alt="" className="aspect-[4/3] w-full object-cover" />
+                      <span className="block px-2.5 py-2 text-sm font-medium leading-tight">{s.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+
+              <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="lg:hidden">
+                <QuickAsks onAsk={send} />
+              </motion.div>
+            </motion.div>
+          )}
+
+          <div className="space-y-4">
+            {messages.map((m) =>
+              m.role === "user" ? (
+                <motion.div key={m.id} {...enter} className="flex justify-end">
+                  <div className="max-w-[85%] sm:max-w-[70%] flex flex-col items-end gap-2">
+                    {m.parts.map((p, i) =>
+                      p.type === "file" ? (
+                        <img key={i} src={p.url} alt="Your photo of the issue" className="rounded-[18px] max-h-56 border border-border" />
+                      ) : p.type === "text" ? (
+                        <div key={i} className="rounded-[18px] rounded-br-md bg-primary text-white px-4 py-2.5">{p.text}</div>
+                      ) : null,
+                    )}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key={m.id} {...enter} className="flex gap-2.5">
+                  <AgentAvatar />
+                  <div className="flex-1 min-w-0 space-y-3 max-w-2xl">{renderAssistant(m)}</div>
+                </motion.div>
+              ),
+            )}
+
+            {status === "submitted" && (
+              <motion.div {...enter} className="flex gap-2.5 items-center text-muted" aria-live="polite">
+                <AgentAvatar />
+                <span className="flex gap-1" aria-label="Thinking">
+                  {[0, 1, 2].map((i) => (
+                    <motion.span
+                      key={i}
+                      className="size-2 rounded-full bg-primary/60"
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.12 }}
+                    />
+                  ))}
+                </span>
+              </motion.div>
+            )}
+
+            {error && (
+              <div role="alert" className="rounded-2xl bg-danger-soft text-danger px-4 py-3 flex items-center gap-3">
+                <span className="flex-1">{friendlyError(error.message)}</span>
+                <button type="button" className="btn btn-secondary !min-h-10 !py-2 !text-sm" onClick={() => regenerate(requestOptions())}>Try again</button>
+              </div>
+            )}
           </div>
-          {messages.length > 0 && (
-            <button className="btn btn-ghost ml-auto shrink-0 whitespace-nowrap !min-h-0 !py-1.5" onClick={newReport}>
-              <RotateCcw className="size-4" /> New report
-            </button>
-          )}
-        </div>
-
-        <div ref={scrollRef} className="@container flex-1 overflow-y-auto px-5 sm:px-6 py-6 space-y-4">
-          {messages.length === 0 && (
-            <div className="max-w-2xl mx-auto text-center py-4">
-              <div className="text-xs font-semibold text-muted uppercase tracking-wide">Try a sample photo</div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-2">
-                {SAMPLES.map((s) => (
-                  <button
-                    key={s.id}
-                    className="group rounded-xl overflow-hidden border border-border bg-surface-2 text-left hover:border-primary transition"
-                    onClick={() => pickSample(s)}
-                  >
-                    <img src={s.src} alt={s.label} className="aspect-square w-full object-cover group-hover:scale-105 transition" />
-                    <span className="block px-1.5 py-1 text-[11px] font-semibold truncate">{s.emoji} {s.label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="mt-5 text-xs font-semibold text-muted uppercase tracking-wide">Or ask</div>
-              <div className="flex flex-col gap-2 mt-2">
-                {QUICK_PROMPTS.map((q) => (
-                  <button key={q} className="rounded-xl border border-border px-3 py-2 text-sm text-left hover:bg-surface-2" onClick={() => send(q)}>
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((m) =>
-            m.role === "user" ? (
-              <div key={m.id} className="flex justify-end">
-                <div className="max-w-[85%] sm:max-w-[70%] space-y-2">
-                  {m.parts.map((p, i) =>
-                    p.type === "file" ? (
-                      <img key={i} src={p.url} alt="Uploaded issue" className="rounded-2xl max-h-56 ml-auto border border-border" />
-                    ) : p.type === "text" ? (
-                      <div key={i} className="rounded-2xl rounded-br-md bg-primary text-white px-4 py-2.5 text-sm">{p.text}</div>
-                    ) : null,
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div key={m.id} className="flex gap-2.5">
-                <span className="grid place-items-center size-7 rounded-full bg-primary-soft text-primary shrink-0 mt-1"><Bot className="size-4" /></span>
-                <div className="flex-1 min-w-0 space-y-2 max-w-2xl">
-                  {m.parts.map((p, i) => {
-                    if (p.type === "text" && p.text.trim()) {
-                      return (
-                        <div key={i} className="rounded-2xl rounded-tl-md bg-surface-2 px-4 py-2.5 text-sm leading-relaxed">
-                          <Rich text={p.text} />
-                        </div>
-                      );
-                    }
-                    if (!isTool(p)) return null;
-                    const tool = p.type.replace(/^tool-/, "");
-                    if (tool === "confirm_and_file" && p.state === "input-available") {
-                      return (
-                        <ApprovalCard
-                          key={p.toolCallId}
-                          draft={p.input as unknown as Draft}
-                          wards={meta.wards}
-                          departments={meta.departments}
-                          thumb={lastThumb}
-                          onApprove={(d) => approve(p, d)}
-                          onCancel={() => cancel(p)}
-                        />
-                      );
-                    }
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const out = p.output as any;
-                    return (
-                      <div key={p.toolCallId} className="space-y-2">
-                        <StepCard part={p} />
-                        {p.state === "output-available" && out?.filed && out.complaint && (
-                          <TicketCard t={out.complaint as TicketSummary} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ),
-          )}
-
-          {status === "submitted" && (
-            <div className="flex gap-2.5 items-center text-sm text-muted">
-              <span className="grid place-items-center size-7 rounded-full bg-primary-soft text-primary"><Loader2 className="size-4 animate-spin" /></span>
-              Thinking…
-            </div>
-          )}
-
-          {error && (
-            <div className="rounded-xl bg-danger-soft text-danger px-4 py-3 text-sm flex items-center gap-3">
-              <span className="flex-1">{friendlyError(error.message)}</span>
-              <button className="btn btn-ghost !min-h-0 !py-1.5" onClick={() => regenerate(requestOptions())}>Retry</button>
-            </div>
-          )}
         </div>
 
         {/* Composer */}
-        <div className="border-t border-border p-3 space-y-2">
-          {(photo || loc || notice) && (
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              {photo && (
-                <span className="flex items-center gap-2 rounded-xl bg-surface-2 pl-1 pr-2 py-1">
-                  <img src={photo.thumb} alt="" className="size-9 rounded-lg object-cover" />
-                  <span className="font-semibold max-w-32 truncate">{photo.label}</span>
-                  <button aria-label="Remove photo" onClick={() => setPhoto(null)}><X className="size-3.5" /></button>
-                </span>
-              )}
-              {loc && (
-                <span className="flex items-center gap-1 rounded-xl bg-accent-soft text-accent px-2 py-1.5 font-semibold">
-                  <MapPin className="size-3.5" /> {loc.source} · {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
-                </span>
-              )}
-              {notice && <span className="text-muted">{notice}</span>}
-            </div>
-          )}
+        <div className="border-t border-border bg-surface p-3 sm:px-5 space-y-2">
+          <AnimatePresence initial={false}>
+            {(photo || loc || notice) && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                className="flex flex-wrap items-center gap-2 text-sm"
+              >
+                {photo && (
+                  <span className="flex items-center gap-2 rounded-xl bg-surface-2 pl-1 pr-1.5 py-1">
+                    <img src={photo.thumb} alt="" className="size-9 rounded-lg object-cover" />
+                    <span className="font-semibold max-w-36 truncate">{photo.label}</span>
+                    <button type="button" aria-label="Remove photo" className="grid place-items-center size-8 rounded-lg hover:bg-border" onClick={() => setPhoto(null)}>
+                      <X className="size-4" aria-hidden />
+                    </button>
+                  </span>
+                )}
+                {loc && (
+                  <a href="#location" className="flex items-center gap-1.5 rounded-xl bg-accent-soft text-accent-ink px-3 py-2 font-semibold">
+                    <MapPin className="size-4" aria-hidden /> {loc.source}
+                  </a>
+                )}
+                {notice && <span className="text-muted">{notice}</span>}
+              </motion.div>
+            )}
+          </AnimatePresence>
           <form
             className="flex items-end gap-2"
             onSubmit={(e) => {
@@ -414,16 +477,18 @@ export default function ReportPage() {
           >
             <input ref={galleryRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])} />
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])} />
-            <button type="button" className="btn btn-ghost !px-3 sm:hidden" aria-label="Take photo" onClick={() => cameraRef.current?.click()}>
-              <Camera className="size-5" />
+            <button type="button" className="btn btn-ghost !px-3 sm:hidden" aria-label="Take a photo" onClick={() => cameraRef.current?.click()}>
+              <Camera className="size-5" aria-hidden />
             </button>
-            <button type="button" className="btn btn-ghost !px-3" aria-label="Attach photo" onClick={() => galleryRef.current?.click()}>
-              <ImagePlus className="size-5" />
+            <button type="button" className="btn btn-ghost !px-3" aria-label="Attach a photo" onClick={() => galleryRef.current?.click()}>
+              <ImagePlus className="size-5" aria-hidden />
             </button>
             <textarea
-              className="input resize-none flex-1 min-h-10 max-h-32"
+              ref={inputRef}
+              className="input resize-none flex-1 max-h-32"
               rows={1}
-              placeholder={photo ? "Add a note (optional) and send" : "Describe the issue or ask about a complaint…"}
+              aria-label="Message"
+              placeholder={photo ? "Add a note, or just send" : "Describe the issue…"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -435,11 +500,11 @@ export default function ReportPage() {
             />
             {busy ? (
               <button type="button" className="btn btn-danger !px-3" aria-label="Stop" onClick={() => stop()}>
-                <Square className="size-4" />
+                <Square className="size-5" aria-hidden />
               </button>
             ) : (
-              <button type="submit" className={`btn !px-4 ${photo ? "btn-accent" : "btn-primary"}`} disabled={!input.trim() && !photo}>
-                <Send className="size-4" /> <span className="hidden sm:inline">{photo ? "Report" : "Send"}</span>
+              <button type="submit" className="btn btn-primary !px-3 sm:!px-5" disabled={!input.trim() && !photo} aria-label={photo ? "Report this issue" : "Send"}>
+                <Send className="size-5" aria-hidden /> <span className="hidden sm:inline">{photo ? "Report" : "Send"}</span>
               </button>
             )}
           </form>
@@ -447,81 +512,41 @@ export default function ReportPage() {
       </section>
 
       {/* Side panel */}
-      <aside className="space-y-4">
-        <div className="card p-[18px] space-y-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="font-semibold text-[15px]">Issue location</h2>
-            <button className="btn btn-ghost !min-h-0 !py-1.5 !px-2.5 text-xs" onClick={useMyLocation}>
-              <Crosshair className="size-3.5" /> Use my location
-            </button>
-          </div>
-          <MapPicker selected={selected} points={wardPoints} onPick={(lat, lng) => setLoc({ lat, lng, source: "map pin" })} height={190} />
-          <p className="text-xs text-muted">Tap the map to drop a pin. Blue dots are AMC ward offices.</p>
+      <aside className="space-y-4 lg:sticky lg:top-24">
+        <div id="location" className="scroll-mt-28">
+          <SideCard
+            title="Issue location"
+            action={
+              <button type="button" className="btn btn-ghost !min-h-10 !py-2 !px-3 !text-sm !rounded-full" onClick={useMyLocation}>
+                <LocateFixed className="size-4" aria-hidden /> Use my location
+              </button>
+            }
+          >
+            <MapPicker selected={selected} points={wardPoints} onPick={(lat, lng) => setLoc({ lat, lng, source: "Pin on map" })} height={200} />
+            <p className="text-sm text-muted">
+              {loc ? <span className="font-semibold text-accent-ink">{loc.source} · {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span> : "We read it from your photo. If it has none, tap the map."}
+            </p>
+          </SideCard>
         </div>
 
-        <div className="card p-[18px] space-y-3.5">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="font-semibold text-[15px]">Agent pipeline</h2>
-            {pipeline && (
-              <span className="rounded-full bg-ok-soft text-ok px-2.5 py-1 text-xs font-semibold">
-                {pipeline.filter((p) => p.part?.state === "output-available").length}/{PIPELINE.length} done
-              </span>
-            )}
-          </div>
-          <ol>
-            {PIPELINE.map((s, i) => {
-              const part = pipeline?.[i]?.part;
-              const done = part?.state === "output-available";
-              const running = part && !done && part.state !== "output-error";
-              const sum = done ? summary(part.type.replace(/^tool-/, ""), part.input, part.output) : null;
-              return (
-                <li key={s.tool} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <span
-                      className={`grid place-items-center size-6 rounded-full text-[11px] font-bold shrink-0 ${
-                        done ? (sum?.warn ? "bg-warn text-white" : "bg-ok text-white") : running ? "bg-primary text-white" : "bg-surface-2 text-muted"
-                      }`}
-                    >
-                      {running ? <Loader2 className="size-3.5 animate-spin" /> : done ? <Check className="size-3.5" /> : i + 1}
-                    </span>
-                    {i < PIPELINE.length - 1 && <span className={`w-0.5 flex-1 min-h-5 ${done ? "bg-ok/35" : "bg-border"}`} />}
-                  </div>
-                  <div className="min-w-0 pb-3">
-                    <div className={`text-sm ${done || running ? "font-semibold" : "text-muted"}`}>{s.label}</div>
-                    {sum?.text && <div className="text-xs text-muted truncate">{sum.text}</div>}
-                    {part?.type === "tool-confirm_and_file" && part.state === "input-available" && (
-                      <div className="text-xs text-primary font-semibold">Waiting for your approval</div>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+        <div className="hidden lg:block">
+          <QuickAsks onAsk={send} />
         </div>
 
         {settings && (
-          <div className="card p-[18px] space-y-3.5">
-            <h2 className="font-semibold text-[15px]">Agent controls</h2>
-            <div className="space-y-1">
-              <div className="text-xs text-muted font-semibold">Before filing</div>
-              <Segmented<Autonomy>
-                value={settings.autonomy}
-                onChange={(v) => patchSettings({ autonomy: v })}
-                options={[{ value: "ask", label: "Ask me first" }, { value: "auto", label: "Auto-file" }]}
-              />
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs text-muted font-semibold">Reply language</div>
-              <Segmented<Language>
-                value={settings.language}
-                onChange={(v) => patchSettings({ language: v })}
-                options={[{ value: "en", label: "English" }, { value: "hi", label: "हिंदी" }, { value: "gu", label: "ગુજરાતી" }]}
-              />
-            </div>
-          </div>
+          <SideCard title="Before filing">
+            <Segmented<Autonomy>
+              label="Before filing"
+              value={settings.autonomy}
+              onChange={(v) => saveSettings({ autonomy: v })}
+              options={[{ value: "ask", label: "Let me check first" }, { value: "auto", label: "File right away" }]}
+            />
+            <p className="text-sm text-muted">
+              {settings.autonomy === "ask" ? "You review and edit the complaint before it goes to AMC." : "The agent files straight away and gives you the ticket ID."}
+            </p>
+          </SideCard>
         )}
       </aside>
-      </div>
     </div>
   );
 }

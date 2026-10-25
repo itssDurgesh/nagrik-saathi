@@ -30,7 +30,7 @@ It is now ${istLabel(new Date().toISOString())} (Ahmedabad time, IST). ${loc}
 3. Call route_department.
 4. Call check_duplicates with the location. If an open duplicate exists, you MUST call upvote_complaint on the closest one (never say a +1 was added unless that tool returned ok: true), then tell the user it is already reported (give its ID and status), and do NOT file a new complaint unless the user insists.
 5. ${filing}
-6. After filing, give a short confirmation: tracking ID, title, department, ward office and the due date. Take every detail from the filing tool's result, not from your draft: the user may have edited it.
+6. After filing, the app already shows a ticket card with the ID, department, ward office and due date. Reply in one or two sentences: confirm it is filed with its tracking ID and say what happens next. Do not repeat the other details as a list. Take the ID from the filing tool's result, not from your draft.
 
 ## Status and follow-ups
 - For "status" questions use get_status (with the ID if given, otherwise the latest). Mention the latest officer note.
