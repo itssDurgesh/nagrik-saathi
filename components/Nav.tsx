@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bot, Camera, ClipboardList, Landmark } from "lucide-react";
+import { Bot, Camera, ClipboardList, Landmark, Sparkles } from "lucide-react";
 
 const LINKS = [
   { href: "/", label: "Report", icon: Camera },
@@ -14,32 +14,35 @@ const LINKS = [
 export function Nav() {
   const path = usePathname();
   return (
-    <header className="sticky top-0 z-[1000] border-b border-border bg-surface/90 backdrop-blur">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="grid place-items-center size-8 rounded-lg bg-accent text-white font-bold">ન</span>
-          <span className="leading-tight">
-            <span className="block font-bold text-sm">Nagrik Saathi</span>
-            <span className="block text-[11px] text-muted">AMC complaint agent</span>
+    <header className="sticky top-0 z-[1000] border-b border-border bg-surface/95 backdrop-blur">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 h-[72px] flex items-center gap-4">
+        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <span className="grid place-items-center size-10 rounded-xl bg-accent text-white text-lg font-bold">ન</span>
+          <span className="leading-tight hidden sm:block">
+            <span className="block font-bold">Nagrik Saathi</span>
+            <span className="block text-xs text-muted">AMC complaint agent · Ahmedabad</span>
           </span>
         </Link>
-        <nav className="flex gap-1 overflow-x-auto ml-auto -mr-2 pr-2 [scrollbar-width:none]">
+        <nav className="ml-auto flex gap-1 rounded-xl bg-surface-2 p-1 overflow-x-auto [scrollbar-width:none]">
           {LINKS.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? path === "/" : path.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap ${
-                  active ? "bg-primary-soft text-primary" : "text-muted hover:text-text hover:bg-surface-2"
+                className={`flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-sm whitespace-nowrap transition ${
+                  active ? "bg-surface text-primary font-semibold shadow-sm" : "text-muted font-medium hover:text-text"
                 }`}
               >
-                <Icon className="size-4" />
-                <span className="hidden sm:inline">{label}</span>
+                <Icon className="size-4 md:hidden" />
+                <span className="hidden md:inline">{label}</span>
               </Link>
             );
           })}
         </nav>
+        <span className="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-ok-soft text-ok px-3 py-1.5 text-xs font-semibold">
+          <Sparkles className="size-3" /> Agent online
+        </span>
       </div>
     </header>
   );

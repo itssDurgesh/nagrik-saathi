@@ -15,17 +15,19 @@ export interface ToolPart {
 }
 
 const META: Record<string, { label: string; icon: LucideIcon }> = {
-  analyze_photo: { label: "Analysing photo", icon: Eye },
-  locate_ward: { label: "Locating ward", icon: MapPin },
-  route_department: { label: "Routing department", icon: Building2 },
+  analyze_photo: { label: "See the issue", icon: Eye },
+  locate_ward: { label: "Find the ward", icon: MapPin },
+  route_department: { label: "Pick department", icon: Building2 },
   check_duplicates: { label: "Checking duplicates", icon: Search },
-  upvote_complaint: { label: "Adding +1", icon: ThumbsUp },
-  file_complaint: { label: "Filing complaint", icon: FileCheck2 },
+  upvote_complaint: { label: "Add +1 to existing report", icon: ThumbsUp },
+  file_complaint: { label: "File complaint", icon: FileCheck2 },
   confirm_and_file: { label: "Waiting for your approval", icon: FileCheck2 },
-  get_status: { label: "Fetching live status", icon: Search },
-  list_my_complaints: { label: "Listing your complaints", icon: List },
+  get_status: { label: "Live status from AMC", icon: Search },
+  list_my_complaints: { label: "Your complaints", icon: List },
   escalate_complaint: { label: "Escalating", icon: Megaphone },
 };
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function summary(tool: string, input: any, out: any): { text: string; warn?: boolean } {
@@ -41,14 +43,14 @@ export function summary(tool: string, input: any, out: any): { text: string; war
       return { text: `${out.department} · SLA ${out.sla_days}d${out.priority?.startsWith("URGENT") ? " · URGENT" : ""}`, warn: out.priority?.startsWith("URGENT") };
     case "check_duplicates":
       return out.duplicates_found
-        ? { text: `${out.duplicates_found} open report nearby: ${out.matches[0].id} (${out.matches[0].metres_away} m)`, warn: true }
+        ? { text: `${plural(out.duplicates_found, "open report")} nearby: ${out.matches[0].id} (${out.matches[0].metres_away} m)`, warn: true }
         : { text: "No duplicates within 250 m" };
     case "upvote_complaint":
-      return out.ok ? { text: `+1 on ${out.id} · ${out.upvotes} citizens` } : { text: out.error, warn: true };
+      return out.ok ? { text: `+1 on ${out.id} · ${plural(out.upvotes, "citizen")}` } : { text: out.error, warn: true };
     case "get_status":
       return out.found ? { text: `${out.id} · ${out.status}${out.overdue ? " · overdue" : ""}`, warn: out.overdue } : { text: "Not found", warn: true };
     case "list_my_complaints":
-      return { text: `${Array.isArray(out) ? out.length : 0} complaints` };
+      return { text: `${plural(Array.isArray(out) ? out.length : 0, "complaint")}` };
     case "escalate_complaint":
       return out.ok ? { text: `Escalated to ${out.escalated_to}` } : { text: out.error, warn: true };
     case "file_complaint":
@@ -80,10 +82,10 @@ export function StepCard({ part }: { part: ToolPart }) {
   const Icon = failed ? XCircle : s.warn ? AlertTriangle : meta.icon;
 
   return (
-    <div className="rounded-xl border border-border bg-surface text-sm">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-2.5 px-3 py-2 text-left">
+    <div className="rounded-xl border border-border bg-surface text-sm transition hover:border-primary/40">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
         <span
-          className={`grid place-items-center size-7 rounded-lg shrink-0 ${
+          className={`grid place-items-center size-8 rounded-[10px] shrink-0 ${
             failed ? "bg-danger-soft text-danger" : s.warn ? "bg-warn-soft text-warn" : done ? "bg-ok-soft text-ok" : "bg-primary-soft text-primary"
           }`}
         >

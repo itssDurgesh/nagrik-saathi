@@ -19,11 +19,11 @@ export function TicketCard({ t }: { t: TicketSummary }) {
   const [copied, setCopied] = useState(false);
   const share = `My AMC complaint ${t.id}: ${t.title}. Department: ${t.department}. Track it on Nagrik Saathi.`;
   return (
-    <div className="rounded-2xl overflow-hidden border border-ok/30 bg-surface">
+    <div className="rounded-2xl overflow-hidden border border-ok/35 bg-surface shadow-sm">
       <div className="bg-ok-soft px-4 py-3 flex items-center justify-between gap-2">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-ok">Complaint filed</div>
-          <div className="font-mono text-lg font-bold">{t.id}</div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-ok">Complaint filed</div>
+          <div className="font-mono text-[22px] leading-tight font-bold">{t.id}</div>
         </div>
         <button
           className="btn btn-ghost !min-h-0 !py-1.5"
@@ -37,7 +37,7 @@ export function TicketCard({ t }: { t: TicketSummary }) {
         </button>
       </div>
       <div className="px-4 py-3 space-y-2 text-sm">
-        <div className="font-semibold">{t.title}</div>
+        <div className="font-semibold text-[15px]">{t.title}</div>
         <div className="flex items-start gap-2 text-muted"><Building2 className="size-4 mt-0.5 shrink-0" />{t.department}</div>
         <div className="flex items-start gap-2 text-muted"><MapPin className="size-4 mt-0.5 shrink-0" />{t.ward} · {t.ward_office}</div>
         <div className="flex items-start gap-2 text-muted"><CalendarClock className="size-4 mt-0.5 shrink-0" />Resolve by {fmtDate(t.due_at)}</div>

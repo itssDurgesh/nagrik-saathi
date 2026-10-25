@@ -35,14 +35,15 @@ export function ApprovalCard({
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
 
   return (
-    <div className="rounded-2xl border-2 border-primary/40 bg-surface overflow-hidden">
-      <div className="bg-primary-soft px-4 py-2.5 flex items-center gap-2 text-primary">
+    <div className="rounded-2xl border-2 border-primary/45 bg-surface overflow-hidden shadow-sm">
+      <div className="bg-primary-soft px-4 py-2.5 flex flex-wrap items-center gap-2 text-primary">
         <ShieldCheck className="size-4" />
         <span className="text-sm font-semibold">Review before filing</span>
-        <span className="ml-auto text-[11px] text-muted">You&apos;re in &ldquo;Ask me first&rdquo; mode</span>
+        <span className="ml-auto text-[11px] text-muted">Ask-me-first mode · edit anything</span>
       </div>
-      <div className="p-4 grid gap-3 sm:grid-cols-[120px_1fr]">
-        {thumb && <img src={thumb} alt="Reported issue" className="rounded-xl w-full sm:w-[120px] aspect-[4/3] object-cover" />}
+      {/* Breakpoints follow the chat column's width (@container), not the window, so fields never get squeezed. */}
+      <div className="p-4 grid gap-3 @xl:grid-cols-[132px_1fr]">
+        {thumb && <img src={thumb} alt="Reported issue" className="rounded-xl w-full max-h-40 @xl:w-[132px] @xl:max-h-none aspect-[4/3] object-cover" />}
         <div className="grid gap-2.5">
           <label className="grid gap-1 text-xs font-semibold text-muted">
             Title

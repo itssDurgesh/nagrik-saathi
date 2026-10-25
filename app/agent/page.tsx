@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bot, CheckCircle2, Cpu, KeyRound, RotateCcw, ShieldCheck, Zap, XCircle } from "lucide-react";
-import { Segmented } from "@/components/ui";
+import { PageHeader, Segmented } from "@/components/ui";
 import { fmtDate } from "@/lib/format";
 import { TOOL_INFO } from "@/lib/tool-info";
 import type { Language, LogEntry, Settings } from "@/lib/types";
@@ -10,7 +10,7 @@ import type { Language, LogEntry, Settings } from "@/lib/types";
 interface State {
   settings: Settings;
   logs: LogEntry[];
-  model: string;
+  models: string[];
   hasKey: boolean;
 }
 
@@ -45,20 +45,27 @@ export default function AgentPage() {
   const { settings } = s;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Agent control</h1>
-          <p className="text-sm text-muted">Decide how much the agent may do on its own, which tools it can use, and inspect every action it took.</p>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="You stay in charge"
+        icon={ShieldCheck}
+        title="Agent control"
+        description="Decide how much the agent may do on its own, which tools it can use, and inspect every action it took."
+      >
         <button className="btn btn-danger" onClick={reset}><RotateCcw className="size-4" /> Reset demo data</button>
-      </div>
+      </PageHeader>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="card p-4 space-y-3">
           <h2 className="font-semibold flex items-center gap-2"><Cpu className="size-4" /> Engine</h2>
           <div className="text-sm grid gap-2">
-            <div className="flex justify-between"><span className="text-muted">Model</span><span className="font-mono">{s.model}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-muted">Model</span><span className="font-mono truncate">{s.models[0]}</span></div>
+            <div className="flex justify-between gap-3">
+              <span className="text-muted shrink-0">Fallbacks</span>
+              <span className="font-mono text-xs text-right" title="Used in order when a model is out of quota or busy">
+                {s.models.slice(1).join(", ") || "none"}
+              </span>
+            </div>
             <div className="flex justify-between items-center">
               <span className="text-muted">Gemini API key</span>
               {s.hasKey ? (

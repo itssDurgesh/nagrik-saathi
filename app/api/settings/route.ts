@@ -1,3 +1,4 @@
+import { modelChain } from "@/lib/model";
 import { readDb, resetDb, updateDb } from "@/lib/store";
 import type { Settings } from "@/lib/types";
 
@@ -6,7 +7,7 @@ export async function GET() {
   return Response.json({
     settings: db.settings,
     logs: db.logs,
-    model: process.env.GEMINI_MODEL || "gemini-3-flash-preview",
+    models: modelChain(),
     hasKey: Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY),
   });
 }

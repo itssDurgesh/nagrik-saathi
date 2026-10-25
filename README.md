@@ -8,8 +8,10 @@ Garbathon 2026 (GDG Ahmedabad), Agents track. Snap a photo of a civic problem. A
 npm install
 cp .env.example .env.local   # add GOOGLE_GENERATIVE_AI_API_KEY (free at aistudio.google.com/apikey)
 npm run dev                  # http://localhost:3000
-npm test                     # 51 Vitest tests: store, geo, SLA, agent tools, API routes
+npm test                     # 61 Vitest tests: store, geo, SLA, agent tools, model fallback, API routes
 ```
+
+**Gemini quota.** Free-tier keys allow only about 20 requests per model per day, and one photo report takes 5-6 agent steps. The agent therefore falls back through several models (`gemini-3.5-flash` → `gemini-3-flash-preview` → `gemini-2.5-flash` → `gemini-3.1-flash-lite`) whenever one is out of quota (429) or overloaded (503). Override the order with `GEMINI_MODEL` and `GEMINI_FALLBACK_MODELS`; see `lib/model.ts`.
 
 The mock AMC system is `data/amc.json` (the seed). Live data goes to `data/db.json`. Use **Agent control → Reset demo data** before a demo.
 

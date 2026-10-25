@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { STATUS_LABEL, type Severity, type Status } from "@/lib/types";
 
 const TONE = {
@@ -41,6 +42,34 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
   return <Badge tone={SEVERITY_TONE[severity]}>{severity === "urgent" ? "⚠ Urgent" : severity}</Badge>;
 }
 
+/** Title block shared by every page: eyebrow chip, big heading, one-line description, optional actions. */
+export function PageHeader({
+  eyebrow,
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  eyebrow: string;
+  icon: LucideIcon;
+  title: string;
+  description: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end gap-4">
+      <div className="flex-1 min-w-64 space-y-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft text-accent px-2.5 py-1 text-xs font-semibold">
+          <Icon className="size-3" /> {eyebrow}
+        </span>
+        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-[-0.02em] leading-tight">{title}</h1>
+        <p className="text-muted max-w-2xl">{description}</p>
+      </div>
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+    </div>
+  );
+}
+
 export function Segmented<T extends string>({
   value,
   options,
@@ -51,13 +80,13 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="inline-flex rounded-xl bg-surface-2 p-1 gap-1">
+    <div className="flex rounded-xl bg-surface-2 p-1 gap-1">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+          className={`flex-1 rounded-[9px] px-3 py-2 text-sm font-semibold whitespace-nowrap transition ${
             value === o.value ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-text"
           }`}
         >

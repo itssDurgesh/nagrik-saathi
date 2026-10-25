@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertTriangle, Building2, MapPin, Megaphone, MessageSquare, ThumbsUp } from "lucide-react";
+import { AlertTriangle, Building2, MapPin, Megaphone, MessageSquare, Radio, ThumbsUp } from "lucide-react";
 import { StatusTimeline } from "@/components/StatusTimeline";
-import { Badge, SeverityBadge, Segmented, StatusBadge } from "@/components/ui";
+import { Badge, PageHeader, SeverityBadge, Segmented, StatusBadge } from "@/components/ui";
 import { fmtDate, isOverdue, slaLabel } from "@/lib/format";
 import { ISSUE_LABEL, type Complaint, type Department, type Ward } from "@/lib/types";
 
@@ -23,14 +23,15 @@ export default function ComplaintsPage() {
   const list = data.complaints.filter((c) => scope === "all" || c.reporter === "me");
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{scope === "me" ? "My complaints" : "All complaints in the city"}</h1>
-          <p className="text-sm text-muted">Live from the AMC system. Updates every few seconds.</p>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Live from the AMC system"
+        icon={Radio}
+        title={scope === "me" ? "My complaints" : "All complaints in the city"}
+        description="Track every report from filing to fix. Updates every few seconds."
+      >
         <Segmented value={scope} onChange={setScope} options={[{ value: "me", label: "Mine" }, { value: "all", label: "Whole city" }]} />
-      </div>
+      </PageHeader>
 
       {list.length === 0 && (
         <div className="card p-10 text-center">
@@ -71,7 +72,7 @@ export default function ComplaintsPage() {
               <div className="grid gap-1 text-xs text-muted">
                 <div className="flex items-center gap-1.5"><Building2 className="size-3.5" />{dept?.name}</div>
                 <div className="flex items-center gap-1.5"><MapPin className="size-3.5" />{ward?.name} · {ward?.zone}</div>
-                {c.upvotes > 0 && <div className="flex items-center gap-1.5"><ThumbsUp className="size-3.5" />{c.upvotes} other citizens reported this</div>}
+                {c.upvotes > 0 && <div className="flex items-center gap-1.5"><ThumbsUp className="size-3.5" />{c.upvotes} other {c.upvotes === 1 ? "citizen" : "citizens"} reported this</div>}
               </div>
 
               <div className="rounded-xl bg-surface-2 px-3 py-2 text-sm">

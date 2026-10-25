@@ -21,29 +21,6 @@
   --info-soft: #e6f3fb;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #111017;
-    --surface: #1a1922;
-    --surface-2: #23222d;
-    --border: #2f2d3a;
-    --text: #eceaf3;
-    --muted: #9c99ab;
-    --primary: #8b8cff;
-    --primary-soft: #25244a;
-    --accent: #ff8a3d;
-    --accent-soft: #3a2416;
-    --ok: #4ade80;
-    --ok-soft: #15301f;
-    --warn: #fbbf24;
-    --warn-soft: #362a12;
-    --danger: #f472b6;
-    --danger-soft: #3a1828;
-    --info: #38bdf8;
-    --info-soft: #102b3b;
-  }
-}
-
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -73,45 +50,52 @@ body {
   font-family: var(--font-sans);
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
+/* Component classes live in a layer so Tailwind utilities (sm:hidden, rounded-*, p-*) can override them. */
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    box-shadow: 0 6px 20px rgb(28 26 34 / 0.06);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    min-height: 2.5rem;
+    transition: background 0.15s, opacity 0.15s, transform 0.05s;
+    cursor: pointer;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover:not(:disabled) { opacity: 0.92; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.92; }
+  .btn-ghost { background: var(--surface-2); color: var(--text); }
+  .btn-ghost:hover:not(:disabled) { background: var(--border); }
+  .btn-danger { background: var(--danger-soft); color: var(--danger); }
+
+  .input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  border-radius: 0.75rem;
-  padding: 0.55rem 0.9rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  min-height: 2.5rem;
-  transition: background 0.15s, opacity 0.15s, transform 0.05s;
-  cursor: pointer;
-}
-.btn:active { transform: scale(0.98); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover:not(:disabled) { opacity: 0.92; }
-.btn-ghost { background: var(--surface-2); color: var(--text); }
-.btn-ghost:hover:not(:disabled) { background: var(--border); }
-.btn-danger { background: var(--danger-soft); color: var(--danger); }
-
-.input {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.65rem;
-  padding: 0.5rem 0.7rem;
-  font-size: 0.9rem;
-  color: var(--text);
-}
-.input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
-
-.leaflet-container { font-family: inherit; }
+/* Isolate Leaflet's z-index 400-1000 panes so map controls never float over the sticky nav. */
+.leaflet-container { font-family: inherit; isolation: isolate; }
 
 @keyframes pulse-dot { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
 .pulse { animation: pulse-dot 1.2s ease-in-out infinite; }

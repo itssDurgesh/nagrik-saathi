@@ -2,8 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Building2, Map as MapIcon, MapPin, Megaphone, ThumbsUp, X } from "lucide-react";
-import { Badge, SeverityBadge, StatusBadge } from "@/components/ui";
+import { AlertTriangle, Building2, Landmark, Map as MapIcon, MapPin, Megaphone, ThumbsUp, X } from "lucide-react";
+import { Badge, PageHeader, SeverityBadge, StatusBadge } from "@/components/ui";
 import { fmtDate, isOverdue, slaLabel } from "@/lib/format";
 import { ISSUE_LABEL, STATUSES, STATUS_LABEL, type Complaint, type Department, type Status, type Ward } from "@/lib/types";
 
@@ -26,6 +26,8 @@ export default function OfficerPage() {
     return () => clearInterval(t);
   }, [load]);
 
+  const closeDrawer = useCallback(() => setOpenId(null), []);
+
   async function move(id: string, status: Status, note = "") {
     await fetch(`/api/complaints/${id}`, { method: "PATCH", body: JSON.stringify({ status, note }) });
     load();
@@ -43,27 +45,25 @@ export default function OfficerPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-accent">Mock AMC staff console</div>
-          <h1 className="text-2xl font-bold tracking-tight">Complaint board</h1>
-          <p className="text-sm text-muted">Drag a card to change its status. The citizen&apos;s agent reads changes live.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <select className="input !w-auto" value={dept} onChange={(e) => setDept(e.target.value)}>
-            <option value="all">All departments</option>
-            {data.departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-          <select className="input !w-auto" value={ward} onChange={(e) => setWard(e.target.value)}>
-            <option value="all">All wards</option>
-            {data.wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-          <button className="btn btn-ghost" onClick={() => setShowMap((s) => !s)}>
-            <MapIcon className="size-4" /> {showMap ? "Hide map" : "City map"}
-          </button>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Mock AMC staff console"
+        icon={Landmark}
+        title="Complaint board"
+        description="Drag a card or open it to change its status. The citizen's agent reads changes live."
+      >
+        <select className="input !w-auto" aria-label="Filter by department" value={dept} onChange={(e) => setDept(e.target.value)}>
+          <option value="all">All departments</option>
+          {data.departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <select className="input !w-auto" aria-label="Filter by ward" value={ward} onChange={(e) => setWard(e.target.value)}>
+          <option value="all">All wards</option>
+          {data.wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+        <button className="btn btn-ghost" onClick={() => setShowMap((s) => !s)}>
+          <MapIcon className="size-4" /> {showMap ? "Hide map" : "City map"}
+        </button>
+      </PageHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map((s) => (
@@ -152,7 +152,7 @@ export default function OfficerPage() {
           c={open}
           ward={data.wards.find((w) => w.id === open.wardId)}
           dept={data.departments.find((d) => d.id === open.departmentId)}
-          onClose={() => setOpenId(null)}
+          onClose={closeDrawer}
           onSave={async (status, note) => {
             await move(open.id, status, note);
           }}
@@ -174,6 +174,18 @@ function Drawer({
   const [status, setStatus] = useState<Status>(c.status);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Escape closes the drawer, and the board behind it stops scrolling while it is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+    };
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-[2000] flex justify-end bg-black/40" onClick={onClose}>
